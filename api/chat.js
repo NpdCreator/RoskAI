@@ -1,30 +1,34 @@
+// Thay đổi từ server.js
+// Vị trí mới: project_root/api/chat.js
+
 require('dotenv').config();
 const express = require('express');
-const http = require('http'); 
-const https = require('https'); 
-const { URL } = require('url'); 
-const multer = require('multer'); 
-const pdf = require('pdf-parse'); 
-const stream = require('stream'); 
-const unzipper = require('unzipper'); 
+const http = require('http');
+const https = require('https');
+const { URL } = require('url');
+const multer = require('multer');
+const pdf = require('pdf-parse');
+const stream = require('stream');
+const unzipper = require('unzipper');
 
 const app = express();
-const port = process.env.PORT || 3000;
+// Dòng này (port) không cần thiết cho Vercel nữa vì Vercel tự quản lý cổng
+// const port = process.env.PORT || 3000; 
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = 'gemini-2.0-flash-lite'; 
+const GEMINI_MODEL = 'gemini-2.0-flash-lite';
 
-const upload = multer({ 
+const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
     fileFilter: (req, file, cb) => {
         const allowedMimeTypes = [
-            'text/plain', 
-            'application/pdf', 
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
-            'application/zip' 
+            'text/plain',
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/zip' // Lưu ý: fileFilter của bạn cho phép zip, nhưng logic đọc file chỉ xử lý txt, pdf, docx
         ];
-        if (allowedMimeTypes.includes(file.mimetype) || 
+        if (allowedMimeTypes.includes(file.mimetype) ||
             file.originalname.toLowerCase().endsWith('.txt') ||
             file.originalname.toLowerCase().endsWith('.pdf') ||
             file.originalname.toLowerCase().endsWith('.docx')
@@ -36,8 +40,12 @@ const upload = multer({
     }
 });
 
-app.use(express.json()); 
-app.use(express.static('public'));
+app.use(express.json());
+// Vercel sẽ phục vụ các file tĩnh từ thư mục 'public' tự động,
+// nhưng route này vẫn có thể được giữ nếu bạn muốn xử lý nó một cách cụ thể thông qua Express
+// Tuy nhiên, với Vercel, tốt nhất là để Vercel tự động serve static assets.
+// Nếu bạn có file index.html trong public/, Vercel sẽ tự động hiển thị nó.
+app.use(express.static('public')); 
 
 function makeRequest(url, options = {}) {
     return new Promise((resolve, reject) => {
@@ -50,8 +58,8 @@ function makeRequest(url, options = {}) {
             path: parsedUrl.pathname + parsedUrl.search,
             method: options.method || 'GET',
             headers: {
-                'User-Agent': 'RoskAI/1.0.0 (Node.js)', 
-                'Content-Type': 'application/json', 
+                'User-Agent': 'RoskAI/1.0.0 (Node.js)',
+                'Content-Type': 'application/json',
                 ...options.headers
             }
         };
@@ -87,7 +95,7 @@ function makeRequest(url, options = {}) {
         });
 
         req.on('error', (e) => {
-            console.error(`[makeRequest] Request error for ${url}:`, e.message); 
+            console.error(`[makeRequest] Request error for ${url}:`, e.message);
             reject(e);
         });
 
@@ -101,16 +109,16 @@ function makeRequest(url, options = {}) {
 const chatHistory = [];
 
 app.post('/chat', upload.array('files'), async (req, res) => {
-    const { message, thinkingMode } = req.body; 
-    const uploadedFiles = req.files || []; 
+    const { message, thinkingMode } = req.body;
+    const uploadedFiles = req.files || [];
 
     if (!message && uploadedFiles.length === 0) {
         return res.status(400).json({ error: 'Tin nhắn không được để trống và không có file nào được tải lên.' });
     }
 
     const now = new Date();
-    const currentDateString = now.toLocaleDateString('vi-VN', { 
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+    const currentDateString = now.toLocaleDateString('vi-VN', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
 
     let historyPrompt = '';
@@ -133,7 +141,6 @@ app.post('/chat', upload.array('files'), async (req, res) => {
                 const data = await pdf(file.buffer);
                 content = data.text;
             } else if (fileExtension === 'docx') {
-                // CHỈNH SỬA Ở ĐÂY: Gói quá trình giải nén trong một Promise
                 content = await new Promise((resolve, reject) => {
                     let docxText = '';
                     const bufferStream = new stream.PassThrough();
@@ -148,31 +155,29 @@ app.post('/chat', upload.array('files'), async (req, res) => {
                             try {
                                 const xmlBuffer = await entry.buffer();
                                 docxText = xmlBuffer.toString('utf8');
-                                // Lọc bỏ các thẻ XML
-                                let cleanContent = docxText.replace(/<[^>]*>/g, ''); 
+                                let cleanContent = docxText.replace(/<[^>]*>/g, '');
                                 cleanContent = cleanContent.replace(/&nbsp;/g, ' ');
-                                cleanContent = cleanContent.replace(/&#xa;/g, '\n'); 
-                                resolve(cleanContent); // Hoàn thành Promise với nội dung sạch
+                                cleanContent = cleanContent.replace(/&#xa;/g, '\n');
+                                resolve(cleanContent);
                             } catch (readError) {
                                 console.error(`Lỗi khi đọc nội dung XML từ ${file.originalname}:`, readError);
                                 reject(new Error(`Không thể đọc nội dung XML từ DOCX: ${readError.message}`));
                             }
                         });
-                        // Xử lý trường hợp không tìm thấy entry
                         bufferStream.on('finish', () => {
-                            if (!docxText) { // Nếu không có nội dung được trích xuất
+                            if (!docxText) {
                                 reject(new Error("Không tìm thấy word/document.xml trong file DOCX hoặc file rỗng."));
                             }
                         });
                 });
                 
-                if (!content) { // Đảm bảo rằng 'content' không rỗng sau Promise
+                if (!content) {
                     throw new Error("Không thể trích xuất nội dung từ file DOCX.");
                 }
 
             } else {
                 console.warn(`File with unsupported extension "${fileExtension}" was not filtered and skipped.`);
-                continue; 
+                continue;
             }
             fileContentsForAI.push(`--- File: ${file.originalname} ---\n${content}\n--- End File: ${file.originalname} ---`);
 
@@ -283,7 +288,7 @@ app.post('/chat', upload.array('files'), async (req, res) => {
         console.error('Lỗi khi gọi API Gemini hoặc mạng:', error.message);
         let errorMessage = 'Không thể kết nối đến dịch vụ của Rosk AI. Vui lòng kiểm tra kết nối mạng hoặc Glitch project của bạn.';
         
-        if (error.statusCode) { 
+        if (error.statusCode) {
             try {
                 const errorDetails = JSON.parse(error.responseBody);
                 if (error.statusCode === 400) {
@@ -306,7 +311,11 @@ app.post('/chat', upload.array('files'), async (req, res) => {
     }
 });
 
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-    console.log(`Rosk AI v1.0.0 is ready! Open your Glitch project URL to access the app.`);
-});
+// XÓA DÒNG app.listen(...) NÀY
+// app.listen(port, () => {
+//     console.log(`Server is running on port ${port}`);
+//     console.log(`Rosk AI v1.0.0 is ready! Open your Glitch project URL to access the app.`);
+// });
+
+// THÊM DÒNG NÀY ĐỂ EXPORT ỨNG DỤNG EXPRESS
+module.exports = app;
