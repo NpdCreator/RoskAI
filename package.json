@@ -1,0 +1,21 @@
+{
+  "name": "rosk-ai",
+  "version": "1.0.0",
+  "description": "Rosk AI - Your free and powerful AI companion with internet access.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^1.1.1",
+    "unzipper": "^0.10.14"  
+  },
+  "engines": {
+    "node": "16.x"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}
