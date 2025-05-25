@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rosk AI - Trợ lý AI của bạn</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Rosk AI <span class="version">v1.0.0</span></h1>
+            <p class="tagline">Trợ lý AI chuyên nghiệp của bạn.</p>
+            <div id="thinkingModeIndicator" class="thinking-mode-indicator hidden">
+                <i class="fas fa-brain"></i> Thinking Mode: **ON**
+            </div>
+        </div>
+
+        <div class="chat-window" id="chatWindow">
+            <div class="chat-message bot-message">
+                Chào bạn! Tôi là Rosk AI, v1.0.0. Tôi sẵn sàng hỗ trợ bạn. Hãy bắt đầu!
+            </div>
+        </div>
+
+        <div id="loading" class="hidden">
+            <div class="spinner"></div>
+            <span>Rosk đang suy nghĩ...</span> 
+        </div>
+        <div id="error" class="hidden error-message"></div>
+    </div>
+    
+    <div class="uploaded-files-container hidden" id="uploadedFilesContainer">
+        </div>
+
+    <div class="input-container">
+        <div class="input-area drop-area" id="inputArea">
+            <button id="thinkingButton" class="icon-button thinking-off">
+                <svg viewBox="0 0 24 24" fill="white" width="24px" height="24px">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.76 0-5 2.24-5 5h2c0-1.66 1.34-3 3-3s3 1.34 3 3c0 1.66-1.34 3-3 3-.77 0-1.47-.29-2-.76l-1.42 1.42C8.36 17.52 10.05 18 12 18c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
+                </svg>
+            </button>
+            <textarea id="userInput" placeholder="Gửi tin nhắn..."></textarea>
+            <button id="sendButton" class="icon-button"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script src="/script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';</script>
+</body>
+</html>
